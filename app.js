@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 5000;
 // Enable CORS for the frontend origin
 app.use(
   cors({
-    origin: "https://daniilrad.github.io", // Update this to your GitHub Pages URL
+    origin: "https://daniilrad.github.io" || "http://localhost:5173", // Update this to your GitHub Pages URL
     credentials: true, // Allow cookies and other credentials if needed
   })
 );
