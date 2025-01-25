@@ -18,7 +18,7 @@ app.use(
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: "./uploads/",
+  destination: "./uploads",
   filename: (req, file, cb) => {
     const uniqueName = file.originalname;
     cb(null, uniqueName);
@@ -46,7 +46,7 @@ wss.on("connection", (ws) => {
 });
 
 // File upload endpoint
-app.post("/upload", upload.single("model"), (req, res) => {
+app.post("/api/upload", upload.single("model"), (req, res) => {
   if (!req.file) {
     return res.status(400).send("No file uploaded.");
   }
@@ -61,7 +61,7 @@ app.post("/upload", upload.single("model"), (req, res) => {
   res.json({ url: fileUrl });
 });
 
-// Delete all files in the uploads directory
+// Delete a specific file in the uploads directory
 app.delete("/uploads/:filename", (req, res) => {
   const filePath = path.join(__dirname, "uploads", req.params.filename);
   fs.unlink(filePath, (err) => {
@@ -74,7 +74,7 @@ app.delete("/uploads/:filename", (req, res) => {
 });
 
 // List all models endpoint
-app.get("/api/models", async (req, res) => {
+app.get("/api/load", async (req, res) => {
   const uploadsDir = path.join(__dirname, "uploads");
 
   try {
