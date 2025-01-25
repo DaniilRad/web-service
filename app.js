@@ -8,11 +8,21 @@ const WebSocket = require("ws"); // Import WebSocket
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Enable CORS for the frontend origin
 app.use(
   cors({
-    origin: "https://daniilrad.github.io" || "http://localhost:5173", // Update this to your GitHub Pages URL
-    credentials: true, // Allow cookies and other credentials if needed
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        "https://daniilrad.github.io", // Production
+        "http://localhost:5173", // Development
+      ];
+
+      if (allowedOrigins.includes(origin) || !origin) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true, // Allow cookies and other credentials
   })
 );
 
