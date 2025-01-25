@@ -7,13 +7,12 @@ const WebSocket = require("ws"); // Import WebSocket
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
 
 // Enable CORS for the frontend origin
 app.use(
   cors({
-    origin: "*", // Allow all origins (or specify your frontend domain for security)
+    origin: "https://daniilrad.github.io", // Update this to your GitHub Pages URL
+    credentials: true, // Allow cookies and other credentials if needed
   })
 );
 
@@ -55,7 +54,9 @@ app.post("/upload", upload.single("model"), (req, res) => {
   const filePath = req.file.path.replace(/\\/g, "/");
   console.log(`Model uploaded: ${filePath}`);
 
-  const fileUrl = `${req.protocol}://${req.get("host")}/${filePath}`;
+  const fileUrl = `${req.protocol}://${req.get("host")}/uploads/${path.basename(
+    filePath
+  )}`;
   broadcast({ type: "UPLOAD", url: fileUrl });
   res.json({ url: fileUrl });
 });
@@ -81,7 +82,7 @@ app.get("/api/models", async (req, res) => {
 
     const models = files.map((file) => ({
       name: file,
-      url: `http://localhost:5000/uploads/${file}`,
+      url: `${req.protocol}://${req.get("host")}/uploads/${file}`,
     }));
 
     res.json(models);
@@ -93,7 +94,7 @@ app.get("/api/models", async (req, res) => {
 
 // Upgrade HTTP server for WebSocket
 const server = app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
 server.on("upgrade", (req, socket, head) => {
   wss.handleUpgrade(req, socket, head, (ws) => {
