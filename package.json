@@ -1,7 +1,8 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "app.js",
+  "main": "index.cjs",
+  "type": "module",
   "scripts": {
     "start": "vercel dev"
   },
