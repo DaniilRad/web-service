@@ -25,11 +25,13 @@ const PORT = process.env.PORT || 5000;
 
 //* Create Express app
 const app = express();
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 //* Middleware
 app.use(
   cors({
-    origin: "*", // Allow only this origin
+    origin: ["https://3d-web-app-three.vercel.app", "http://localhost:5173"],
     methods: ["GET", "POST", "DELETE"], // Allow specific HTTP methods
     allowedHeaders: ["Content-Type"], // Allow specific headers
     credentials: true, // Optional: Allow cookies/auth headers
@@ -39,6 +41,7 @@ app.use(
 //* Multer upload middleware for file uploads
 const upload = multer({
   storage: multer.memoryStorage(), // Use memory storage to keep file in memory before upload
+  limits: { fileSize: 50 * 1024 * 1024 }, // Limit file size to 50MB
   fileFilter: (req, file, cb) => {
     const allowedMimes = [
       "model/gltf-binary", // .glb
