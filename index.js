@@ -2,28 +2,41 @@ import express from "express";
 import cors from "cors";
 import multer from "multer";
 import AWS from "aws-sdk";
-
 import dotenv from "dotenv";
+import { WebSocketServer } from "ws";
+import http from "http";
+
+//* Load environment variables from .env file
 dotenv.config();
 
+//* Configure AWS SDK & S3 bucket & port
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   region: process.env.AWS_REGION,
 });
-
 const bucketName = process.env.AWS_BUCKET_NAME;
-
-console.log("AWS_BUCKET_NAME", process.env.AWS_ACCESS_KEY_ID);
-console.log("AWS_SECRET_ACCESS_KEY", process.env.AWS_SECRET_ACCESS_KEY);
-console.log("AWS_REGION", process.env.AWS_REGION);
-console.log("AWS_BUCKET_NAME", process.env.AWS_BUCKET_NAME);
-const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
+// console.log("AWS_BUCKET_NAME", process.env.AWS_ACCESS_KEY_ID);
+// console.log("AWS_SECRET_ACCESS_KEY", process.env.AWS_SECRET_ACCESS_KEY);
+// console.log("AWS_REGION", process.env.AWS_REGION);
+// console.log("AWS_BUCKET_NAME", process.env.AWS_BUCKET_NAME);
 
+//* Create Express app
+const app = express();
+
+//* Middleware
+app.use(
+  cors({
+    origin: ["https://3d-web-app-three.vercel.app", "http://localhost:5173"], // Allow only this origin
+    methods: ["GET", "POST", "DELETE"], // Allow specific HTTP methods
+    allowedHeaders: ["Content-Type"], // Allow specific headers
+    credentials: true, // Optional: Allow cookies/auth headers
+  })
+);
+
+//* Multer upload middleware for file uploads
 const upload = multer({
   storage: multer.memoryStorage(), // Use memory storage to keep file in memory before upload
   fileFilter: (req, file, cb) => {
@@ -48,7 +61,12 @@ const upload = multer({
   },
 });
 
-// Upload endpoint
+//* Example API endpoint
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ message: "CORS configuration works!" });
+});
+
+//* Upload endpoint
 app.post("/api/upload", upload.single("model"), async (req, res) => {
   const file = req.file;
 
@@ -65,6 +83,8 @@ app.post("/api/upload", upload.single("model"), async (req, res) => {
 
   try {
     const uploadResult = await s3.upload(params).promise();
+
+    console.log("File uploaded to S3:", uploadResult.Location);
     res.status(200).json({ url: uploadResult.Location });
   } catch (uploadError) {
     console.error("S3 Upload Error:", uploadError);
@@ -72,7 +92,7 @@ app.post("/api/upload", upload.single("model"), async (req, res) => {
   }
 });
 
-// Load endpoint
+//* Load endpoint
 app.get("/api/load", async (req, res) => {
   try {
     const params = { Bucket: bucketName };
@@ -82,7 +102,7 @@ app.get("/api/load", async (req, res) => {
       name: item.Key,
       url: `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${item.Key}`,
     }));
-
+    console.log("files", files);
     res.status(200).json(files);
   } catch (error) {
     console.error("S3 List Error:", error);
@@ -90,7 +110,7 @@ app.get("/api/load", async (req, res) => {
   }
 });
 
-// Delete endpoint
+//* Delete endpoint
 app.delete("/api/uploads/:filename", async (req, res) => {
   const { filename } = req.params;
 
@@ -102,6 +122,7 @@ app.delete("/api/uploads/:filename", async (req, res) => {
     const params = { Bucket: bucketName, Key: filename };
     await s3.deleteObject(params).promise();
 
+    console.log("File deleted:", params);
     res.status(200).json({ message: "File deleted successfully" });
   } catch (error) {
     console.error("S3 Delete Error:", error);
@@ -109,113 +130,60 @@ app.delete("/api/uploads/:filename", async (req, res) => {
   }
 });
 
+app.get("/api/uploads/:filename", async (req, res) => {
+  const { filename } = req.params;
+
+  if (!filename) {
+    return res.status(400).json({ error: "Filename is required" });
+  }
+
+  const params = {
+    Bucket: process.env.AWS_BUCKET_NAME,
+    Key: filename,
+    Expires: 3600, // URL expiration time in seconds
+  };
+
+  try {
+    const url = s3.getSignedUrl("getObject", params);
+    res.json({ url });
+  } catch (error) {
+    console.error("Error generating pre-signed URL:", error);
+    res.status(500).send("Failed to generate URL.");
+  }
+});
+
+//* Create HTTP server and attach Express app && Create WebSocket server
+// const server = http.createServer(app);
+// const wss = new WebSocketServer({ server });
+
+//* Handle WebSocket connections
+// wss.on("connection", (ws) => {
+//   console.log("New WebSocket connection");
+
+//* Keep the connection alive with a ping
+//   const interval = setInterval(() => {
+//     if (ws.readyState === WebSocket.OPEN) {
+//       ws.send(JSON.stringify({ type: "PING" }));
+//     }
+//   }, 30000); // Send a ping every 30 seconds
+
+//   ws.on("message", (message) => {
+//     console.log("Received message:", message);
+//   });
+
+//   ws.on("close", (code, reason) => {
+//     console.log("WebSocket connection closed:", { code, reason });
+//     clearInterval(interval); // Clear interval on close
+//   });
+
+//   ws.on("error", (error) => {
+//     console.error("WebSocket error:", error);
+//   });
+// });
+
+//* Start server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
 
 export default app;
-
-
-// import express from "express";
-// import cors from "cors";
-// import multer from "multer";
-// import fs from "fs";
-// import path from "path";
-// import { fileURLToPath } from "url";
-
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = path.dirname(__filename);
-
-// const app = express();
-// const PORT = process.env.PORT || 5000;
-
-// // Middleware
-// app.use(cors());
-
-// // Set up Multer for file upload
-// const upload = multer({
-//   storage: multer.diskStorage({
-//     destination: (req, file, cb) => {
-//       const uploadDir = "./uploads";
-//       if (!fs.existsSync(uploadDir)) {
-//         fs.mkdirSync(uploadDir); // Create uploads directory if it doesn't exist
-//       }
-//       cb(null, uploadDir); // Save files to the ./uploads directory
-//     },
-//     filename: (req, file, cb) => {
-//       cb(null, file.originalname); // Use original file name
-//     },
-//   }),
-//   fileFilter: (req, file, cb) => {
-//     const allowedMimes = [
-//       "model/gltf-binary", // .glb
-//       "model/gltf+json", // .gltf
-//       "model/stl", // .stl
-//       "model/obj", // .obj
-//       "model/mtl", // .mtl
-//       "model/vnd.collada+xml", // .dae
-//       "application/octet-stream", // Generic binary files (e.g., .bin)
-//     ];
-//     if (!allowedMimes.includes(file.mimetype)) {
-//       return cb(
-//         new Error(
-//           "Unsupported file type. Allowed formats are: .glb, .gltf, .stl, .obj, .mtl, .dae"
-//         ),
-//         false
-//       );
-//     }
-//     cb(null, true);
-//   },
-// });
-
-// // Upload endpoint: Save files locally
-// app.post("/api/upload", upload.single("model"), (req, res) => {
-//   const file = req.file;
-
-//   if (!file) {
-//     return res.status(400).json({ error: "No file uploaded" });
-//   }
-
-//   console.log(`File uploaded locally: ${file.path}`);
-//   res.status(200).json({ message: "File uploaded successfully", filePath: file.path });
-// });
-
-// // Load endpoint: List files saved locally
-// app.get("/api/load", (req, res) => {
-//   const uploadDir = "./uploads";
-
-//   if (!fs.existsSync(uploadDir)) {
-//     return res.status(200).json([]); // Return an empty list if no files exist
-//   }
-
-//   const files = fs.readdirSync(uploadDir).map((fileName) => ({
-//     name: fileName,
-//     path: path.join(uploadDir, fileName),
-//     url: `http://localhost:${PORT}/uploads/${fileName}`, // Serve files from uploads directory
-//   }));
-
-//   res.status(200).json(files);
-// });
-
-// // Serve static files in the uploads directory
-// app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-// // Delete endpoint: Delete files locally
-// app.delete("/api/uploads/:filename", (req, res) => {
-//   const { filename } = req.params;
-//   const filePath = path.join("./uploads", filename);
-
-//   if (!fs.existsSync(filePath)) {
-//     return res.status(404).json({ error: "File not found" });
-//   }
-
-//   fs.unlinkSync(filePath); // Delete the file
-//   console.log(`File deleted: ${filePath}`);
-//   res.status(200).json({ message: "File deleted successfully" });
-// });
-
-// app.listen(PORT, () => {
-//   console.log(`Server running on http://localhost:${PORT}`);
-// });
-
-// export default app;
