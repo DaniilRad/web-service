@@ -38,6 +38,13 @@ app.use(
   })
 );
 
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*"); // ✅ Allow any origin (Change if needed)
+  res.header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  next();
+});
+
 //* Multer upload middleware for file uploads
 const upload = multer({
   storage: multer.memoryStorage(), // Use memory storage to keep file in memory before upload
