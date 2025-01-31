@@ -29,7 +29,7 @@ const app = express();
 //* Middleware
 app.use(
   cors({
-    origin: ["https://3d-web-app-three.vercel.app", "http://localhost:5173"], // Allow only this origin
+    origin: "*", // Allow only this origin
     methods: ["GET", "POST", "DELETE"], // Allow specific HTTP methods
     allowedHeaders: ["Content-Type"], // Allow specific headers
     credentials: true, // Optional: Allow cookies/auth headers
