@@ -25,9 +25,9 @@ const PORT = process.env.PORT || 5000;
 
 //* Create Express app
 const app = express();
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
-
+app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
+app.use(express.json());
 //* Middleware
 app.use(
   cors({
