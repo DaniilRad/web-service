@@ -25,18 +25,26 @@ const PORT = process.env.PORT || 5000;
 
 //* Create Express app
 const app = express();
-app.use(bodyParser.json({limit: '50mb'}));
-app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
 //* Middleware
 app.use(
   cors({
-    origin: ["https://3d-web-app-three.vercel.app", "http://localhost:5173"],
-    methods: ["GET", "POST", "DELETE"], // Allow specific HTTP methods
-    allowedHeaders: ["Content-Type"], // Allow specific headers
-    credentials: true, // Optional: Allow cookies/auth headers
+    origin: function (origin, callback) {
+      const allowedOrigins = ["https://3d-web-app-three.vercel.app", "http://localhost:5173"];
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, origin); // ✅ Set the correct origin dynamically
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
   })
 );
+
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*"); // ✅ Allow any origin (Change if needed)
@@ -89,6 +97,7 @@ app.post("/api/upload", upload.single("model"), async (req, res) => {
     Key: file.originalname, // Use original file name
     Body: file.buffer, // File buffer from Multer
     ContentType: file.mimetype, // File MIME type
+    ACL: "public-read", // Allow read access to this file
   };
 
   try {
