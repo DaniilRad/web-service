@@ -31,27 +31,22 @@ app.use(express.urlencoded({ limit: "200mb", extended: true }));
 //* Middleware
 app.use(
   cors({
-    origin: function (origin, callback) {
-      const allowedOrigins = ["https://3d-web-app-three.vercel.app", "http://localhost:5173"];
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, origin); // ✅ Set the correct origin dynamically
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
+    origin: ["https://3d-web-app-three.vercel.app", "http://localhost:5173"],
     methods: ["GET", "POST", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type"],
+    credentials: true, // ✅ Important for cookies/auth headers
   })
 );
 
 
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*"); // ✅ Allow any origin (Change if needed)
+  res.header("Access-Control-Allow-Origin", req.headers.origin); // ✅ Dynamically set allowed origins
   res.header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.header("Access-Control-Allow-Credentials", "true");
   next();
 });
+
 
 //* Multer upload middleware for file uploads
 const upload = multer({
