@@ -25,8 +25,8 @@ const PORT = process.env.PORT || 5000;
 
 //* Create Express app
 const app = express();
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
+app.use(express.json({ limit: "200mb" })); // Increase limit
+app.use(express.urlencoded({ limit: "200mb", extended: true }));
 
 //* Middleware
 app.use(
@@ -56,7 +56,7 @@ app.use((req, res, next) => {
 //* Multer upload middleware for file uploads
 const upload = multer({
   storage: multer.memoryStorage(), // Use memory storage to keep file in memory before upload
-  limits: { fileSize: 50 * 1024 * 1024 }, // Limit file size to 50MB
+  limits: { fileSize: 200 * 1024 * 1024 }, // Increase to 200MB
   fileFilter: (req, file, cb) => {
     const allowedMimes = [
       "model/gltf-binary", // .glb
@@ -101,7 +101,7 @@ app.post("/api/upload", upload.single("model"), async (req, res) => {
   };
 
   try {
-    const uploadResult = await s3.upload(params).promise();
+    const uploadResult = await s3.upload(params, { partSize: 10 * 1024 * 1024 }).promise(); // 10MB per part
 
     console.log("File uploaded to S3:", uploadResult.Location);
     res.status(200).json({ url: uploadResult.Location });
