@@ -39,7 +39,7 @@ app.use(
 );
 
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*"); // ✅ Allow any origin (Change if needed)
+  res.header("Access-Control-Allow-Origin", ["https://3d-web-app-three.vercel.app", "http://localhost:5173"]); // ✅ Allow any origin (Change if needed)
   res.header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
   next();
