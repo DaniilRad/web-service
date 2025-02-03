@@ -2,12 +2,24 @@ import express from "express";
 import cors from "cors";
 import multer from "multer";
 import AWS from "aws-sdk";
+import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import dotenv from "dotenv";
+import { v4 as uuidv4 } from "uuid";
+import { S3Client } from "@aws-sdk/client-s3";
+
 import { WebSocketServer } from "ws";
 import http from "http";
 
 //* Load environment variables from .env file
 dotenv.config();
+
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
 
 //* Configure AWS SDK & S3 bucket & port
 const s3 = new AWS.S3({
@@ -26,9 +38,9 @@ app.use(express.urlencoded({ limit: "200mb", extended: true })); // Allow form d
 //* Middleware
 app.use(
   cors({
-    origin: "https://3d-web-app-three.vercel.app", // Allow frontend domain
+    origin: "*", // ✅ Temporarily allow all origins (change this later)
     methods: ["GET", "POST", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"], // Include any headers you expect
+    allowedHeaders: ["Content-Type"],
     credentials: true, // ✅ Important for cookies/auth headers
   })
 );
@@ -97,6 +109,33 @@ app.post("/api/upload", upload.single("model"), async (req, res) => {
   } catch (uploadError) {
     console.error("S3 Upload Error:", uploadError);
     res.status(500).json({ error: "Failed to upload to S3" });
+  }
+});
+
+app.post("/api/get-presigned-post", async (req, res) => {
+  try {
+    const { fileName, fileType } = req.body;
+    if (!fileType) {
+      return res.status(400).json({ error: "Missing file type" });
+    }
+
+    // const fileName = `${uuidv4()}`; // Unique filename
+    const expiresInSeconds = 300; // 5 minutes
+
+    const presignedPost = await createPresignedPost(s3Client, {
+      Bucket: bucketName,
+      Key: fileName,
+      Expires: expiresInSeconds,
+      Conditions: [
+        ["content-length-range", 0, 200 * 1024 * 1024], // ✅ Allow files up to 200MB
+        ["starts-with", "$Content-Type", ""], // ✅ Allow any Content-Type
+      ],
+    });
+
+    res.json({ presignedPost });
+  } catch (error) {
+    console.error("Error generating pre-signed URL:", error);
+    res.status(500).json({ error: "Failed to generate pre-signed URL" });
   }
 });
 
