@@ -18,22 +18,17 @@ const s3 = new AWS.S3({
 const bucketName = process.env.AWS_BUCKET_NAME;
 const PORT = process.env.PORT || 5000;
 
-// console.log("AWS_BUCKET_NAME", process.env.AWS_ACCESS_KEY_ID);
-// console.log("AWS_SECRET_ACCESS_KEY", process.env.AWS_SECRET_ACCESS_KEY);
-// console.log("AWS_REGION", process.env.AWS_REGION);
-// console.log("AWS_BUCKET_NAME", process.env.AWS_BUCKET_NAME);
-
 //* Create Express app
 const app = express();
-app.use(express.json({ limit: "200mb" })); // Increase limit
-app.use(express.urlencoded({ limit: "200mb", extended: true }));
+app.use(express.json({ limit: "200mb" })); // Allow JSON body parsing
+app.use(express.urlencoded({ limit: "200mb", extended: true })); // Allow form data parsing
 
 //* Middleware
 app.use(
   cors({
-    origin: ["https://3d-web-app-three.vercel.app", "http://localhost:5173"],
+    origin: "https://3d-web-app-three.vercel.app", // Allow frontend domain
     methods: ["GET", "POST", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
+    allowedHeaders: ["Content-Type", "Authorization"], // Include any headers you expect
     credentials: true, // ✅ Important for cookies/auth headers
   })
 );
@@ -92,7 +87,6 @@ app.post("/api/upload", upload.single("model"), async (req, res) => {
     Key: file.originalname, // Use original file name
     Body: file.buffer, // File buffer from Multer
     ContentType: file.mimetype, // File MIME type
-    ACL: "public-read", // Allow read access to this file
   };
 
   try {

@@ -11,5 +11,12 @@
       "src": "/api/(.*)",
       "dest": "/index.js"
     }
-  ]
+  ],
+  "functions": {
+    "api/upload": {
+      "maxDuration": 10,
+      "memory": 512,
+      "maxSize": "100mb"
+    }
+  }
 }
